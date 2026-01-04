@@ -14,6 +14,7 @@ It is designed to standardize concurrency patterns so you don’t need to re-imp
 - Buffered job queue
 - Graceful shutdown support
 - Minimal API with zero external dependencies
+- Worker-level logging controlled via DEBUG env flag (DEBUG=1 enables worker logs, DEBUG=0 keeps things silent. No code changes needed)
 
 ---
 
