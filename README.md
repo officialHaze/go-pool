@@ -38,6 +38,7 @@ import (
 
 func main() {
 	pool := workerpool.New(10) // 10 - Pool size (number of CPUs to use)
+	// If 0 or < is passed as an arg for pool size, then the maximum number of CPUs available is set by default.
 
 	pool.Start()
 
