@@ -2,10 +2,11 @@ package workerpool
 
 import (
 	"fmt"
-	"log"
 	"runtime"
 	"sync"
 	"time"
+
+	"github.com/officialHaze/go-pool/util"
 )
 
 type WorkerJob func() error
@@ -52,7 +53,7 @@ func (wp *WorkerPool) Add(job WorkerJob) {
 	case wp.jobs <- job:
 	case <-wp.quit:
 		// pool shut down
-		log.Println("⚠️ Pool shutting down. Cannot add JOB")
+		util.DebugPrinter("⚠️ Pool shutting down. Cannot add JOB").Logln()
 		return
 	}
 }
@@ -100,15 +101,15 @@ func (wp *WorkerPool) worker(id int) {
 				case wp.errchan <- fmt.Errorf("⚠️ Worker(%d): Failed to execute JOB - %w", id, err):
 				default:
 					// err channel closed
-					log.Printf("⚠️ Worker(%d): Error channel full. Dropping err - %v", id, err)
+					util.DebugPrinter("⚠️ Worker(%d): Error channel full. Dropping err - %v").Logf(id, err)
 					return
 				}
 			} else {
-				log.Printf("✅ Worker(%d): JOB executed successfully!", id)
+				util.DebugPrinter("✅ Worker(%d): JOB executed successfully!").Logf(id)
 			}
 		case <-wp.quit:
 			// pool shut down
-			log.Printf("⚠️ Worker(%d): Pool shutting down. Dropping JOB", id)
+			util.DebugPrinter("⚠️ Worker(%d): Pool shutting down. Dropping JOB").Logf(id)
 			return
 		}
 	}
