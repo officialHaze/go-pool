@@ -22,7 +22,7 @@ type WorkerPool struct {
 }
 
 // Initializer
-func NewWP(size int) *WorkerPool {
+func New(size int) *WorkerPool {
 	if size <= 0 {
 		size = runtime.NumCPU() // default: available CPUs
 	}

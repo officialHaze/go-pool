@@ -4,11 +4,11 @@ import (
 	"io"
 	"log"
 	"os"
-	"gopool/settings"
-	"gopool/util"
 	"strings"
 
 	"github.com/joho/godotenv"
+	"github.com/officialHaze/go-pool/settings"
+	"github.com/officialHaze/go-pool/util"
 	"gopkg.in/natefinch/lumberjack.v2"
 )
 
