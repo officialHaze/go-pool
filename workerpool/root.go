@@ -59,12 +59,12 @@ func (wp *WorkerPool) Add(job WorkerJob) {
 }
 
 func (wp *WorkerPool) StopWaitGracefully() []error {
+	time.Sleep(30 * time.Millisecond) // graceful wait
 	wp.onceDo.Do(func() {
-		close(wp.quit)                    // send quit signal
-		time.Sleep(30 * time.Millisecond) // graceful wait
-		close(wp.jobs)                    // shutdown job channel
-		wp.wg.Wait()                      // wait for all workers to finish
-		close(wp.errchan)                 // close error channel
+		close(wp.quit)    // send quit signal
+		close(wp.jobs)    // shutdown job channel
+		wp.wg.Wait()      // wait for all workers to finish
+		close(wp.errchan) // close error channel
 	})
 
 	// Return the collected errors
