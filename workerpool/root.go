@@ -6,20 +6,22 @@ import (
 	"sync"
 	"time"
 
-	"github.com/officialHaze/go-pool/util"
+	"github.com/google/uuid"
+	"github.com/officialHaze/go-pool/logger"
 )
 
 type WorkerJob func() error
 
 type WorkerPool struct {
-	size    int
-	jobs    chan WorkerJob
-	errchan chan error
-	quit    chan interface{}
-	allerrs []error
-	mu      sync.Mutex
-	wg      *sync.WaitGroup
-	onceDo  sync.Once
+	size     int
+	jobs     chan WorkerJob
+	errchan  chan error
+	quit     chan interface{}
+	closeJob chan string // the job id needs to be passed in the channel to close it
+	allerrs  []error
+	mu       sync.Mutex
+	wg       *sync.WaitGroup
+	onceDo   sync.Once
 }
 
 // Initializer
@@ -29,19 +31,20 @@ func New(size int) *WorkerPool {
 	}
 
 	return &WorkerPool{
-		size:    size,
-		jobs:    make(chan WorkerJob),     // unbuffered channel
-		errchan: make(chan error, size*2), // buffered channel
-		quit:    make(chan interface{}),
-		allerrs: make([]error, 0),
-		wg:      &sync.WaitGroup{},
+		size:     size,
+		jobs:     make(chan WorkerJob),     // unbuffered channel
+		errchan:  make(chan error, size*2), // buffered channel
+		quit:     make(chan interface{}),
+		closeJob: make(chan string), // unbuffered channel
+		allerrs:  make([]error, 0),
+		wg:       &sync.WaitGroup{},
 	}
 }
 
 func (wp *WorkerPool) Start() {
 	for i := 0; i < wp.size; i++ {
 		wp.wg.Add(1)
-		go wp.worker(i + 1) // Start worker
+		go wp.worker(uuid.NewString()) // Start worker
 	}
 
 	// Start error collection
@@ -53,7 +56,7 @@ func (wp *WorkerPool) Add(job WorkerJob) {
 	case wp.jobs <- job:
 	case <-wp.quit:
 		// pool shut down
-		util.DebugPrinter("⚠️ Pool shutting down. Cannot add JOB").Logln()
+		logger.WARN().Println("Pool shutting down. Cannot add JOB")
 		return
 	}
 }
@@ -84,7 +87,7 @@ func (wp *WorkerPool) collectErrors() {
 	}
 }
 
-func (wp *WorkerPool) worker(id int) {
+func (wp *WorkerPool) worker(id string) {
 	defer wp.wg.Done()
 
 	for {
@@ -98,18 +101,18 @@ func (wp *WorkerPool) worker(id int) {
 			if err := job(); err != nil {
 				// pass to error channel
 				select {
-				case wp.errchan <- fmt.Errorf("⚠️ Worker(%d): Failed to execute JOB - %w", id, err):
+				case wp.errchan <- fmt.Errorf("Worker(%s): Failed to execute JOB - %w", id, err):
 				default:
 					// err channel closed
-					util.DebugPrinter("⚠️ Worker(%d): Error channel full. Dropping err - %v").Logf(id, err)
+					logger.WARN().Printf("Worker(%s): Error channel full.\nDropping err - %s", id, err.Error())
 					return
 				}
 			} else {
-				util.DebugPrinter("✅ Worker(%d): JOB executed successfully!").Logf(id)
+				logger.SUCCESS().Printf("Worker(%s): JOB executed successfully!", id)
 			}
 		case <-wp.quit:
 			// pool shut down
-			util.DebugPrinter("⚠️ Worker(%d): Pool shutting down. Dropping JOB").Logf(id)
+			logger.WARN().Printf("Worker(%s): Pool shutting down.\nDropping JOB", id)
 			return
 		}
 	}
